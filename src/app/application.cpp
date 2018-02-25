@@ -26,10 +26,10 @@ Application::Application() :
 
 	device::Input::registerKey(GPIO_PIN_7, &m_keyA);
 	device::Input::registerKey(GPIO_PIN_6, &m_keyB);
-	device::Input::registerKey(GPIO_PIN_15, &m_keyUp);
-	device::Input::registerKey(GPIO_PIN_14, &m_keyDown);
-	device::Input::registerKey(GPIO_PIN_13, &m_keyLeft);
-	device::Input::registerKey(GPIO_PIN_12, &m_keyRight);
+	device::Input::registerKey(GPIO_PIN_5, &m_keyUp);
+	device::Input::registerKey(GPIO_PIN_4, &m_keyDown);
+	device::Input::registerKey(GPIO_PIN_3, &m_keyLeft);
+	device::Input::registerKey(GPIO_PIN_2, &m_keyRight);
 }
 
 void Application::loop()
@@ -43,7 +43,6 @@ void Application::loop()
 			continue;
 
 		device::Display::clear();
-		//LCD_PutStr(a,0, "test",fnt7x10);
 
 		device::Display::drawLine(a, 0, a, 63);
 		device::Display::drawLine(0, a >> 1, 127, a >> 1);
@@ -74,9 +73,6 @@ void Application::loop()
 				device::Display::flush();
 			}
 		}
-
-		//HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		//HAL_Delay(5);
 	}
 }
 

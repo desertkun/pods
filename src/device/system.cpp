@@ -4,7 +4,6 @@ extern "C"
 {
 	#include "stm32f1xx.h"
 	#include "gpio.h"
-	#include "dma.h"
 	#include "spi.h"
 	#include "main.h"
 
@@ -20,8 +19,8 @@ void System::init()
 	HAL_Init();
 	SystemClock_Config();
 	MX_GPIO_Init();
-	MX_DMA_Init();
 	MX_SPI1_Init();
+	MX_SPI2_Init();
 }
 
 };

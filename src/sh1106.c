@@ -32,7 +32,7 @@ static void SH1106_cmd(uint8_t cmd) {
 
 	// Send command to display
 	uint8_t command = cmd;
-	HAL_SPI_Transmit ( &hspi1,  &command, 1, 20) ;
+	HAL_SPI_Transmit ( &SH1106_SPI_PORT,  &command, 1, 20) ;
 }
 
 // Send double byte command to display
@@ -47,7 +47,7 @@ static void SH1106_cmd_double(uint8_t cmd1, uint8_t cmd2) {
 	uint8_t command[2];
 	command[0] = cmd1;
 	command[1] = cmd2;
-	HAL_SPI_Transmit ( &hspi1,  command, 2, 20) ;
+	HAL_SPI_Transmit ( &SH1106_SPI_PORT,  command, 2, 20) ;
 
 }
 
@@ -274,12 +274,12 @@ void SH1106_Flush(void) {
 	{
 		(*page_addr) = SH1106_CMD_PAGE_ADDR | page;
 
-		HAL_SPI_Transmit(&hspi1,(uint8_t *)ram_pointer,sizeof(ram_pointer),1000);
+		HAL_SPI_Transmit(&SH1106_SPI_PORT,(uint8_t *)ram_pointer,sizeof(ram_pointer),1000);
 
 		uint8_t* vram = &vRAM[page * SCR_W];
 
 		SH1106_DC_H();
-		HAL_SPI_Transmit(&hspi1,vram, SCR_W, 1000);
+		HAL_SPI_Transmit(&SH1106_SPI_PORT,vram, SCR_W, 1000);
 
 		SH1106_DC_L();
 	}

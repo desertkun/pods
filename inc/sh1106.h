@@ -25,32 +25,32 @@
 // DMA usage
 //   0 - DMA is not used
 //   1 - compile functions for DMA transfer VRAM to display
-#define SH1106_USE_DMA       1
+#define SH1106_USE_DMA       0
 
 
 // SH1106 HAL
 
 // SPI port
-#define SH1106_SPI_PORT      hSPI1
+#define SH1106_SPI_PORT      hspi2
 
 // GPIO peripherals
 #define SH1106_GPIO_PERIPH   (RCC_AHBENR_GPIOBEN | RCC_AHBENR_GPIOCEN)
 
-// SH1106 RS/A0 (Data/Command select) pin (PC0)
+// SH1106 RS/A0 (Data/Command select) pin (PC6)
 #define SH1106_DC_PORT       GPIOC
-#define SH1106_DC_PIN        GPIO_PIN_0
+#define SH1106_DC_PIN        GPIO_PIN_6
 #define SH1106_DC_H()        HAL_GPIO_WritePin(SH1106_DC_PORT, SH1106_DC_PIN,GPIO_PIN_SET)
 #define SH1106_DC_L()        HAL_GPIO_WritePin(SH1106_DC_PORT, SH1106_DC_PIN,GPIO_PIN_RESET)
 
-// SH1106 RST (Reset) pin (PB9)
+// SH1106 RST (Reset) pin (PB14)
 #define SH1106_RST_PORT      GPIOB
-#define SH1106_RST_PIN       GPIO_PIN_9
+#define SH1106_RST_PIN       GPIO_PIN_14
 #define SH1106_RST_H()       HAL_GPIO_WritePin(SH1106_RST_PORT, SH1106_RST_PIN,GPIO_PIN_SET)
 #define SH1106_RST_L()       HAL_GPIO_WritePin(SH1106_RST_PORT, SH1106_RST_PIN,GPIO_PIN_RESET)
 
-// SH1106 CS (Chip Select) pin (PB8)
+// SH1106 CS (Chip Select) pin (PB12)
 #define SH1106_CS_PORT       GPIOB
-#define SH1106_CS_PIN        GPIO_PIN_8
+#define SH1106_CS_PIN        GPIO_PIN_12
 #define SH1106_CS_H()        HAL_GPIO_WritePin(SH1106_CS_PORT, SH1106_CS_PIN,GPIO_PIN_SET)
 #define SH1106_CS_L()        HAL_GPIO_WritePin(SH1106_CS_PORT, SH1106_CS_PIN,GPIO_PIN_RESET)
 
@@ -167,7 +167,7 @@ extern uint16_t scr_width;
 extern uint16_t scr_height;
 extern uint8_t LCD_PixelMode;
 
-extern SPI_HandleTypeDef hspi1;
+extern SPI_HandleTypeDef SH1106_SPI_PORT;
 
 // Function prototypes
 //void SH1106_InitGPIO(void);

@@ -6,11 +6,17 @@
  */
 
 #include "app/application.h"
+#include "app/messages.h"
 #include "device/device.h"
+#include "device/network.h"
 #include "main.h"
+
+#include <cstring>
 
 namespace app
 {
+
+Application* Application::s_instance = nullptr;
 
 Application::Application() :
 	m_keyA(CTL_A_GPIO_Port, CTL_A_Pin),
@@ -18,18 +24,32 @@ Application::Application() :
 	m_keyUp(CTL_UP_GPIO_Port, CTL_UP_Pin),
 	m_keyDown(CTL_DOWN_GPIO_Port, CTL_DOWN_Pin),
 	m_keyLeft(CTL_LEFT_GPIO_Port, CTL_LEFT_Pin),
-	m_keyRight(CTL_RIGHT_GPIO_Port, CTL_RIGHT_Pin)
+	m_keyRight(CTL_RIGHT_GPIO_Port, CTL_RIGHT_Pin),
+	enabled(false)
 {
+	s_instance = this;
+
 	device::System::init();
 	device::Display::init();
 	device::Input::init();
+	device::Network::init();
+}
 
-	device::Input::registerKey(GPIO_PIN_7, &m_keyA);
-	device::Input::registerKey(GPIO_PIN_6, &m_keyB);
-	device::Input::registerKey(GPIO_PIN_5, &m_keyUp);
-	device::Input::registerKey(GPIO_PIN_4, &m_keyDown);
-	device::Input::registerKey(GPIO_PIN_3, &m_keyLeft);
-	device::Input::registerKey(GPIO_PIN_2, &m_keyRight);
+void Application::messageReceived(uint8_t dataSize, uint8_t* data)
+{
+	uint8_t messageType = *data++;
+	dataSize--;
+
+	switch (messageType)
+	{
+		case MSG_TEST:
+		{
+			msg::Test test;
+			std::memcpy((void*)&test, (const void*)data, sizeof(test));
+
+			enabled = test.a;
+		}
+	}
 }
 
 void Application::loop()
@@ -37,9 +57,21 @@ void Application::loop()
 	uint8_t a = 0;
 	uint8_t dir = 0;
 
+	enabled = true;
+
 	for(;;)
 	{
-		if (getKeyA().getValue())
+		if (getKeyA().isJustDown())
+		{
+			enabled = !enabled;
+
+			msg::Test test;
+			test.a = enabled ? 1 : 0;
+
+			device::Network::send(MSG_TEST, sizeof(test), (uint8_t*)&test);
+		}
+
+		if (!enabled)
 			continue;
 
 		device::Display::clear();

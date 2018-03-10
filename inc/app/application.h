@@ -16,17 +16,21 @@ namespace app
 	class Application
 	{
 	public:
+		static Application* s_instance;
+
+	public:
 		Application();
 
 	public:
 		void loop();
+		void messageReceived(uint8_t dataSize, uint8_t* data);
 
-		const device::Key& getKeyA() const { return m_keyA; }
-		const device::Key& getKeyB() const { return m_keyB; }
-		const device::Key& getKeyUp() const { return m_keyUp; }
-		const device::Key& getKeyDown() const { return m_keyDown; }
-		const device::Key& getKeyLeft() const { return m_keyLeft; }
-		const device::Key& getKeyRight() const { return m_keyRight; }
+		device::Key& getKeyA() { return m_keyA; }
+		device::Key& getKeyB() { return m_keyB; }
+		device::Key& getKeyUp() { return m_keyUp; }
+		device::Key& getKeyDown() { return m_keyDown; }
+		device::Key& getKeyLeft() { return m_keyLeft; }
+		device::Key& getKeyRight() { return m_keyRight; }
 
 	private:
 		device::Key m_keyA;
@@ -36,6 +40,8 @@ namespace app
 		device::Key m_keyDown;
 		device::Key m_keyLeft;
 		device::Key m_keyRight;
+
+		bool enabled;
 	};
 
 };

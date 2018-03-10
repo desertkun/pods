@@ -7,12 +7,19 @@
 
 
 #include <device/input.h>
-#include "stm32f1xx.h"
+
+extern "C" {
+	#include "stm32f1xx.h"
+}
 
 namespace device
 {
 
 Key::Key(GPIO_TypeDef* port, uint16_t pin) :
+	m_justDown(false),
+	m_justUp(false),
+	m_state(KeyState::up),
+	m_time(0),
 	m_port(port),
 	m_pin(pin)
 {
@@ -21,29 +28,116 @@ Key::Key(GPIO_TypeDef* port, uint16_t pin) :
 
 void Key::update()
 {
-	m_value = HAL_GPIO_ReadPin(m_port, m_pin);
+	switch (m_state)
+	{
+		case KeyState::down:
+		{
+			bool currentValue = HAL_GPIO_ReadPin(m_port, m_pin);
+
+			if (!currentValue)
+			{
+				m_time = HAL_GetTick();
+				m_state = KeyState::goingUp;
+			}
+
+			break;
+		}
+		case KeyState::up:
+		{
+			bool currentValue = HAL_GPIO_ReadPin(m_port, m_pin);
+
+			if (currentValue)
+			{
+				m_time = HAL_GetTick();
+				m_state = KeyState::goingDown;
+			}
+
+			break;
+		}
+		case KeyState::goingUp:
+		{
+			uint32_t now = HAL_GetTick();
+
+			if (now - m_time >= 25)
+			{
+				bool currentValue = HAL_GPIO_ReadPin(m_port, m_pin);
+
+				if (currentValue)
+				{
+					m_state = KeyState::down;
+				}
+				else
+				{
+					m_state = KeyState::up;
+					m_justUp = true;
+				}
+			}
+
+			break;
+		}
+		case KeyState::goingDown:
+		{
+			uint32_t now = HAL_GetTick();
+
+			if (now - m_time >= 25)
+			{
+				bool currentValue = HAL_GPIO_ReadPin(m_port, m_pin);
+
+				if (currentValue)
+				{
+					m_state = KeyState::up;
+				}
+				else
+				{
+					m_state = KeyState::down;
+					m_justDown = true;
+				}
+			}
+
+			break;
+		}
+	}
 }
 
-bool Key::getValue() const
+bool Key::isDown()
 {
-	return m_value;
+	update();
+
+	return m_state == KeyState::down;
 }
 
-Input::Keys Input::m_keys = Keys();
 
-void Input::updateKey(uint16_t key)
+bool Key::isUp()
 {
-	Keys::const_iterator it = m_keys.find(key);
+	update();
 
-	if (it == m_keys.end())
-		return;
-
-	it->second->update();
+	return m_state == KeyState::up;
 }
 
-void Input::registerKey(uint16_t key_port, Key* key)
+bool Key::isJustUp()
 {
-	m_keys.insert(std::pair<uint16_t, Key*>(key_port, key));
+	update();
+
+	if (m_justUp)
+	{
+		m_justUp = false;
+		return true;
+	}
+
+	return false;
+}
+
+bool Key::isJustDown()
+{
+	update();
+
+	if (m_justDown)
+	{
+		m_justDown = false;
+		return true;
+	}
+
+	return false;
 }
 
 void Input::init()

@@ -3,7 +3,7 @@
 
 extern "C"
 {
-	#include <sh1106.h>
+	#include "sh1106.h"
 	#include "font7x10.h"
 	#include "font5x7.h"
 	#include "bitmap_tile.h"

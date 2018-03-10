@@ -8,6 +8,10 @@
   ******************************************************************************
 */
 
+#ifdef __cplusplus
+ extern "C" {
+#endif
+
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f1xx_hal.h"
 #include "stm32f1xx.h"
@@ -40,3 +44,7 @@ void SysTick_Handler(void)
 	osSystickHandler();
 #endif
 }
+
+#ifdef __cplusplus
+}
+#endif

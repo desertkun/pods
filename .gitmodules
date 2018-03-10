@@ -1,0 +1,6 @@
+[submodule "external/nrf24l01"]
+	path = external/nrf24l01
+	url = git@github.com:desertkun/NRF24L01.git
+[submodule "external/sh1106"]
+	path = external/sh1106
+	url = git@github.com:desertkun/SH1106.git

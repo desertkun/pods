@@ -16,7 +16,8 @@ namespace device
 	public:
 		static void init();
 
-	private:
+	public:
+		static bool getSystemFlag();
 	};
 
 };

@@ -9,21 +9,41 @@
 #define DEVICE_INPUT_H_
 
 #include <stdint.h>
-#include "stm32f1xx.h"
 #include <map>
+
+extern "C" {
+	#include "stm32f1xx.h"
+}
 
 namespace device
 {
+	enum class KeyState
+	{
+		goingDown,
+		goingUp,
+		down,
+		up
+	};
+
 	class Key
 	{
 	public:
 		Key(GPIO_TypeDef* port, uint16_t pin);
 
-		void update();
-		bool getValue() const;
+		bool isDown();
+		bool isUp();
+		bool isJustDown();
+		bool isJustUp();
 
 	private:
-		bool m_value;
+		void update();
+
+	private:
+		volatile bool m_justDown;
+		volatile bool m_justUp;
+		volatile KeyState m_state;
+
+		uint32_t m_time;
 
 		GPIO_TypeDef* m_port;
 		uint16_t m_pin;
@@ -32,17 +52,7 @@ namespace device
 	class Input
 	{
 	public:
-		typedef std::map<uint16_t, Key*> Keys;
-
-	public:
 		static void init();
-
-	public:
-		static void updateKey(uint16_t key);
-		static void registerKey(uint16_t key_port, Key* key);
-
-	private:
-		static Keys m_keys;
 	};
 
 };

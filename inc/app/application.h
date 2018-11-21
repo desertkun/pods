@@ -9,6 +9,7 @@
 #define APP_APPLICATION_H_
 
 #include "device/input.h"
+#include "app/gs/gamestate.h"
 
 namespace app
 {
@@ -22,6 +23,7 @@ namespace app
 		Application();
 
 	public:
+		void switchTo(gs::GameState* gs);
 		void loop();
 		void messageReceived(uint8_t dataSize, uint8_t* data);
 
@@ -41,7 +43,7 @@ namespace app
 		device::Key m_keyLeft;
 		device::Key m_keyRight;
 
-		bool enabled;
+		gs::GameState* m_gamestate;
 	};
 
 };

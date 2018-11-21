@@ -16,7 +16,7 @@ extern "C"
 	#include "main.h"
 	#include "spi.h"
 
-	void nrf_packet_received(uint8_t* data)
+	void nrf_packet_received_callback(nrf24l01* dev, uint8_t* data)
 	{
 		uint8_t dataSize = *data++;
 		app::Application::s_instance->messageReceived(dataSize, data);
@@ -39,39 +39,51 @@ void Network::interrupt()
 	nrf_irq_handler(&s_nrf);
 }
 
-void Network::send(uint8_t command, uint8_t dataSize, uint8_t* data)
+bool Network::send(uint8_t command, uint8_t dataSize, const void* data)
 {
 	s_tx_buffer[0] = dataSize;
 	s_tx_buffer[1] = command;
 
-	std::memcpy((void*)&s_tx_buffer[2], (const void*)data, dataSize);
+	if (dataSize > 0)
+		std::memcpy((void*)&s_tx_buffer[2], data, dataSize);
 
-	nrf_send_packet(&s_nrf, s_tx_buffer);
+	return nrf_send_packet(&s_nrf, s_tx_buffer) == NRF_OK;
+}
+
+void Network::sendNoAck(uint8_t command, uint8_t dataSize, const void* data)
+{
+	s_tx_buffer[0] = dataSize;
+	s_tx_buffer[1] = command;
+
+	if (dataSize > 0)
+		std::memcpy((void*)&s_tx_buffer[2], data, dataSize);
+
+	nrf_send_packet_noack(&s_nrf, s_tx_buffer);
 }
 
 void Network::init()
 {
-	const uint8_t addr_a[5] = {0x5D, 0x5D, 0x5D, 0x5D, 0x5D};
-	const uint8_t addr_b[5] = {0xE7, 0xE7, 0xE7, 0xE7, 0xE7};
+	const uint8_t addr_a[4] = {0xC2, 0xC2, 0xC2, 0x5D};
+	const uint8_t addr_b[4] = {0xC2, 0xC2, 0xC2, 0xE7};
 
-	if (System::getSystemFlag())
+	if (System::isHost())
 	{
-		std::memcpy((void*)s_0_address, (const void*)addr_a, 5);
-		std::memcpy((void*)s_1_address, (const void*)addr_b, 5);
+		std::memcpy((void*)s_0_address, (const void*)addr_a, 4);
+		std::memcpy((void*)s_1_address, (const void*)addr_b, 4);
 	}
 	else
 	{
-		std::memcpy((void*)s_0_address, (const void*)addr_b, 5);
-		std::memcpy((void*)s_1_address, (const void*)addr_a, 5);
+		std::memcpy((void*)s_0_address, (const void*)addr_b, 4);
+		std::memcpy((void*)s_1_address, (const void*)addr_a, 4);
 	}
 
 	{
 		nrf24l01_config config;
 		config.data_rate        = NRF_DATA_RATE_1MBPS;
 		config.tx_power         = NRF_TX_PWR_0dBm;
-		config.crc_width        = NRF_CRC_WIDTH_1B;
-		config.addr_width       = NRF_ADDR_WIDTH_5;
-		config.payload_length   = 4;    // maximum is 32 bytes
+		config.crc_width        = NRF_CRC_WIDTH_2B;
+		config.addr_width       = NRF_ADDR_WIDTH_4;
+		config.payload_length   = 16;    // maximum is 32 bytes
 		config.retransmit_count = 15;   // maximum is 15 times
 		config.retransmit_delay = 0x0F; // 4000us, LSB:250us
 
@@ -79,6 +91,7 @@ void Network::init()
 		config.tx_address = s_1_address;
 
 		config.rf_channel = 39;
+		config.rx_buffer = s_rx_buffer;
 
 		config.spi         = &hspi1;
 		config.spi_timeout = 10; // milliseconds
@@ -88,8 +101,6 @@ void Network::init()
 		config.csn_pin     = NRF_CS_Pin;
 		config.irq_port    = NRF_IRQ_GPIO_Port;
 		config.irq_pin     = NRF_IRQ_Pin;
-
-		s_nrf.rx_buffer = s_rx_buffer;
 
 		nrf_init(&s_nrf, &config);
 	}

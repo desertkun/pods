@@ -5,6 +5,7 @@ extern "C"
 	#include "stm32f1xx.h"
 	#include "gpio.h"
 	#include "spi.h"
+	//#include "dma.h"
 	#include "main.h"
 
 	void SystemClock_Config(void);
@@ -14,7 +15,7 @@ extern "C"
 namespace device
 {
 
-bool System::getSystemFlag()
+bool System::isHost()
 {
 	return HAL_GPIO_ReadPin(DEVICE_ID_GPIO_Port, DEVICE_ID_Pin);
 }
@@ -24,6 +25,7 @@ void System::init()
 	HAL_Init();
 	SystemClock_Config();
 	MX_GPIO_Init();
+	//MX_DMA_Init();
 	MX_SPI2_Init();
 	MX_SPI1_Init();
 }

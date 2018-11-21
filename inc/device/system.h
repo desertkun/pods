@@ -17,7 +17,7 @@ namespace device
 		static void init();
 
 	public:
-		static bool getSystemFlag();
+		static bool isHost();
 	};
 
 };

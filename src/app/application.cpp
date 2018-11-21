@@ -9,6 +9,7 @@
 #include "app/messages.h"
 #include "device/device.h"
 #include "device/network.h"
+#include "app/gs/intro.h"
 #include "main.h"
 
 #include <cstring>
@@ -25,7 +26,7 @@ Application::Application() :
 	m_keyDown(CTL_DOWN_GPIO_Port, CTL_DOWN_Pin),
 	m_keyLeft(CTL_LEFT_GPIO_Port, CTL_LEFT_Pin),
 	m_keyRight(CTL_RIGHT_GPIO_Port, CTL_RIGHT_Pin),
-	enabled(false)
+	m_gamestate(nullptr)
 {
 	s_instance = this;
 
@@ -33,6 +34,23 @@ Application::Application() :
 	device::Display::init();
 	device::Input::init();
 	device::Network::init();
+
+	gs::Intro::switchTo();
+}
+
+void Application::switchTo(gs::GameState* gs)
+{
+	if (m_gamestate)
+	{
+		m_gamestate->release();
+	}
+
+	m_gamestate = gs;
+
+	if (m_gamestate)
+	{
+		m_gamestate->init();
+	}
 }
 
 void Application::messageReceived(uint8_t dataSize, uint8_t* data)
@@ -40,72 +58,29 @@ void Application::messageReceived(uint8_t dataSize, uint8_t* data)
 	uint8_t messageType = *data++;
 	dataSize--;
 
-	switch (messageType)
+	if (m_gamestate)
 	{
-		case MSG_TEST:
-		{
-			msg::Test test;
-			std::memcpy((void*)&test, (const void*)data, sizeof(test));
-
-			enabled = test.a;
-		}
+		m_gamestate->messageReceived(messageType, dataSize, (void*)data);
 	}
 }
 
 void Application::loop()
 {
-	uint8_t a = 0;
-	uint8_t dir = 0;
+	uint32_t time = HAL_GetTick();
 
-	enabled = true;
-
-	for(;;)
+	while (true)
 	{
-		if (getKeyA().isJustDown())
-		{
-			enabled = !enabled;
+		uint32_t passed = HAL_GetTick() - time;
 
-			msg::Test test;
-			test.a = enabled ? 1 : 0;
+		if (passed < 15)
+			HAL_Delay(15 - passed);
 
-			device::Network::send(MSG_TEST, sizeof(test), (uint8_t*)&test);
-		}
+		time = HAL_GetTick();
 
-		if (!enabled)
-			continue;
-
-		device::Display::clear();
-
-		device::Display::drawLine(a, 0, a, 63);
-		device::Display::drawLine(0, a >> 1, 127, a >> 1);
-
-		device::Display::flush();
-
-		if (dir == 0)
-		{
-			a++;
-
-			if ( a >= 127)
-			{
-				dir = 1;
-
-				device::Display::fill(0xFF);
-				device::Display::flush();
-			}
-		}
-		else
-		{
-			a--;
-
-			if ( a <= 0)
-			{
-				dir = 0;
-
-				device::Display::fill(0xFF);
-				device::Display::flush();
-			}
-		}
+		uint32_t dt = 15;
+		m_gamestate->update(dt);
 	}
+
 }
 
 };

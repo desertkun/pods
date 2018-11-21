@@ -1,0 +1,6 @@
+(fp_lib_table
+  (lib (name nrf24)(type KiCad)(uri "$(KIPRJMOD)/nrf24.pretty")(options "")(descr ""))
+  (lib (name mt02)(type KiCad)(uri "$(KIPRJMOD)/mt02.pretty")(options "")(descr ""))
+  (lib (name tp4056)(type KiCad)(uri "$(KIPRJMOD)/tp4056.pretty")(options "")(descr ""))
+  (lib (name sh1106)(type KiCad)(uri "$(KIPRJMOD)/sh1106.pretty")(options "")(descr ""))
+)

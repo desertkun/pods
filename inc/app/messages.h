@@ -10,13 +10,16 @@
 
 #include <stdint.h>
 
-#define MSG_TEST (0)
+#define MSG_HELLO (0)
+#define MSG_MAP (1)
+
+#define RECEIVE_MSG(x) std::memcpy(&x, data, sizeof(x));
 
 namespace msg
 {
-	struct __attribute__ ((packed)) Test
+	struct __attribute__ ((packed)) Map
 	{
-		uint32_t a;
+		uint8_t data[11];
 	};
 
 };

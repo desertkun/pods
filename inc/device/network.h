@@ -25,7 +25,8 @@ namespace device
 
 	public:
 		static void interrupt();
-		static void send(uint8_t command, uint8_t dataSize, uint8_t* data);
+		static bool send(uint8_t command, uint8_t dataSize, const void* data);
+		static void sendNoAck(uint8_t command, uint8_t dataSize, const void* data);
 
 	private:
 

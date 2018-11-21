@@ -28,9 +28,67 @@ void Display::flush()
 	SH1106_Flush();
 }
 
-void Display::drawLine(uint8_t x, uint8_t y, uint8_t w, uint8_t h)
+void Display::setModeSet()
 {
-	LCD_Line(x, y, w, h);
+	LCD_PixelMode = LCD_PSET;
+}
+
+void Display::setModeReset()
+{
+	LCD_PixelMode = LCD_PRES;
+}
+
+void Display::setModeInvert()
+{
+	LCD_PixelMode = LCD_PINV;
+}
+
+void Display::drawLine(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2)
+{
+	LCD_Line(x1, y1, x2, y2);
+}
+
+void Display::invertDisplay(bool invert)
+{
+	SH1106_SetInvert((uint8_t)invert);
+}
+
+void Display::drawRectangle(uint8_t x, uint8_t y, uint8_t w, uint8_t h)
+{
+	LCD_FillRect(x, y, w, h);
+}
+
+void Display::drawImage(uint8_t X, uint8_t Y, uint8_t W, uint8_t H, const uint8_t* image)
+{
+	LCD_DrawBitmap(X, Y, W, H, image);
+}
+
+void Display::drawImageFullscreen(const uint8_t* image)
+{
+	LCD_DrawBitmapFullscreen(image);
+}
+
+
+void Display::drawText(uint8_t X, uint8_t Y, const char *str, Display::Font font)
+{
+	const Font_TypeDef *f;
+
+	switch (font)
+	{
+		case Display::Font::f_7x10:
+		{
+			f = &Font7x10;
+			break;
+		}
+		case Display::Font::f_5x7:
+		default:
+		{
+			f = &Font5x7;
+			break;
+		}
+	}
+
+	LCD_PutStr(X, Y, str, f);
 }
 
 void Display::init()

@@ -1,0 +1,31 @@
+EESchema-DOCLIB  Version 2.0  Date: 2015-06-18 10:09:19
+#
+$CMP STM32F030C6T
+D STM32F030C6T
+K stm32 stm32f030
+$ENDCMP
+#
+$CMP STM32F030C8T
+D STM32F030C6T
+K stm32 stm32f030
+$ENDCMP
+#
+$CMP STM32F030CCT
+D STM32F030C6T
+K stm32 stm32f030
+F http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00088500.pdf
+$ENDCMP
+#
+$CMP STM32F030F4P
+D STM32F030F4P
+K stm32 stm32f030
+F http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00088500.pdf
+$ENDCMP
+#
+$CMP STM32F030K6T
+D STM32F030K6T
+K stm32 stm32f030
+F http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00088500.pdf
+$ENDCMP
+#
+#End Doc Library

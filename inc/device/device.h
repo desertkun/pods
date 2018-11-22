@@ -4,3 +4,4 @@
 #include "system.h"
 #include "display.h"
 #include "input.h"
+#include "sound.h"

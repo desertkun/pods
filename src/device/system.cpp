@@ -6,6 +6,7 @@ extern "C"
 	#include "gpio.h"
 	#include "spi.h"
 	//#include "dma.h"
+	#include "tim.h"
 	#include "main.h"
 
 	void SystemClock_Config(void);
@@ -28,6 +29,8 @@ void System::init()
 	//MX_DMA_Init();
 	MX_SPI2_Init();
 	MX_SPI1_Init();
+	MX_TIM3_Init();
+	MX_TIM4_Init();
 }
 
 };

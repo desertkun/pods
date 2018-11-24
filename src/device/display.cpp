@@ -21,8 +21,7 @@ void Display::drawRefreshSequence()
 		device::Display::drawLine(0, i, i * 2 - 1, 0);
 		device::Display::drawLine(127, 64 - i, 127 - i * 2 - 1, 63);
 
-		if (i % 4 == 0)
-			device::Display::flush();
+		device::Display::flush();
 	}
 
 	device::Display::setModeReset();
@@ -32,8 +31,7 @@ void Display::drawRefreshSequence()
 		device::Display::drawLine(0, i, i * 2 - 1, 0);
 		device::Display::drawLine(127, 64 - i, 127 - i * 2 - 1, 63);
 
-		if (i % 4 == 0)
-			device::Display::flush();
+		device::Display::flush();
 	}
 
 	device::Display::setModeSet();

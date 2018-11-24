@@ -25,6 +25,7 @@ namespace msg
 
 	struct __attribute__ ((packed)) Move
 	{
+		uint8_t targetX, targetY;
 		uint8_t x, y;
 	};
 };

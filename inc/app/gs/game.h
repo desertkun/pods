@@ -30,9 +30,26 @@ enum class Tile
 	bonusExplosion
 };
 
+class Game;
+
+enum class PlayerState
+{
+	normal = 0,
+	moving = 1
+};
+
 struct Player
 {
-	uint8_t x, y;
+	PlayerState state;
+	uint8_t x, y, targetX, targetY, movingTimer, movedBy;
+	int8_t offsetX, offsetY;
+	Game* game;
+	const unsigned char* sprite;
+
+	void init(uint8_t x, uint8_t y, Game* game, const unsigned char* sprite);
+	void update(uint32_t dt);
+	void moveTo(uint8_t x, uint8_t y);
+	void render();
 };
 
 class Game: public GameState
@@ -51,12 +68,14 @@ public:
 	virtual void messageReceived(uint8_t messageType, uint8_t dataSize, void* data) override;
 
 public:
+	void setDirty() { m_dirty = true; }
+
 	void serialize(msg::Map* mapMsg);
 	void deserialize(msg::Map* mapMsg);
 	void started();
 
 private:
-	void updateMyPosition(int8_t x, int8_t y);
+	void sendMyPosition();
 	void clearCell(uint8_t x, uint8_t y);
 	void renderCell(uint8_t x, uint8_t y, const unsigned char* image);
 	void getReady();
@@ -71,8 +90,6 @@ private:
 	Player& getMyPlayer() { return m_players[m_myPlayerId]; }
 	Player& getOtherPlayer() { return m_players[1 - m_myPlayerId]; }
 
-	void setDirty() { m_dirty = true; }
-
 	void setTile(uint8_t x, uint8_t y, Tile tile);
 	Tile getTile(uint8_t x, uint8_t y) const;
 
@@ -82,10 +99,6 @@ private:
 	uint8_t m_myPlayerId;
 	uint32_t m_seed;
 
-	const unsigned char* m_mySprite;
-	const unsigned char* m_otherSprite;
-
-	uint32_t m_moveTimer;
 	uint32_t m_refreshTimer;
 	bool m_dirty;
 

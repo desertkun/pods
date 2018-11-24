@@ -37,6 +37,88 @@ namespace gs
 
 Game Game::s_instance = Game();
 
+int8_t sgn(int8_t val) {
+    return (int8_t(0) < val) - (val < int8_t(0));
+}
+
+void Player::update(uint32_t dt)
+{
+	switch (state)
+	{
+		case PlayerState::moving:
+		{
+			movingTimer += dt;
+
+			if (movingTimer >= 16)
+			{
+				movingTimer = 0;
+
+				int8_t signX = sgn((int8_t)targetX - (int8_t)x),
+					   signY = sgn((int8_t)targetY - (int8_t)y);
+
+				offsetX += signX;
+				offsetY += signY;
+				movedBy += 1;
+
+				game->setDirty();
+
+				if (movedBy >= 8)
+				{
+					x = targetX;
+					y = targetY;
+					offsetX = 0;
+					offsetY = 0;
+					movedBy = 0;
+					movingTimer = 0;
+					state = PlayerState::normal;
+				}
+			}
+
+
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
+}
+
+void Player::moveTo(uint8_t x, uint8_t y)
+{
+	targetX = x;
+	targetY = y;
+	offsetX = 0;
+	offsetY = 0;
+	movedBy = 0;
+	movingTimer = 0;
+
+	state = PlayerState::moving;
+}
+
+void Player::init(uint8_t x, uint8_t y, Game* game, const unsigned char* sprite)
+{
+	this->x = x;
+	this->y = y;
+	this->game = game;
+	this->sprite = sprite;
+
+	offsetX = 0;
+	offsetY = 0;
+	movingTimer = 0;
+	state = PlayerState::normal;
+}
+
+void Player::render()
+{
+	device::Display::drawImage(
+		MAP_OFFSET_X + x * 8 + offsetX,
+		MAP_OFFSET_Y + y * 8 + offsetY,
+		8, 8, sprite);
+}
+
+/////////
+
 void Game::messageReceived(uint8_t messageType, uint8_t dataSize, void* data)
 {
 	switch (messageType)
@@ -52,7 +134,7 @@ void Game::messageReceived(uint8_t messageType, uint8_t dataSize, void* data)
 
 void Game::update(uint32_t dt)
 {
-	if (m_refreshTimer > 30)
+	if (m_refreshTimer >= 16)
 	{
 		m_refreshTimer = 0;
 
@@ -67,11 +149,14 @@ void Game::update(uint32_t dt)
 		m_refreshTimer += dt;
 	}
 
-	if (m_moveTimer >= 100)
-	{
-		const Player& me = getMyPlayer();
-		const Player& other = getOtherPlayer();
+	Player& me = getMyPlayer();
+	Player& other = getOtherPlayer();
 
+	me.update(dt);
+	other.update(dt);
+
+	if (me.state == PlayerState::normal)
+	{
 		app::Application* app = app::Application::s_instance;
 
 		if (app->getKeyLeft().isDown())
@@ -79,7 +164,8 @@ void Game::update(uint32_t dt)
 			if (me.x > 0 && getTile(me.x - 1, me.y) == Tile::empty && (other.x != me.x - 1 || other.y != me.y))
 			{
 				// we can move left
-				updateMyPosition(-1, 0);
+				me.moveTo(me.x - 1, me.y);
+				sendMyPosition();
 			}
 		}
 		else if (app->getKeyRight().isDown())
@@ -87,7 +173,8 @@ void Game::update(uint32_t dt)
 			if (me.x < MAP_WIDTH - 1 && getTile(me.x + 1, me.y) == Tile::empty && (other.x != me.x + 1 || other.y != me.y))
 			{
 				// we can move right
-				updateMyPosition(1, 0);
+				me.moveTo(me.x + 1, me.y);
+				sendMyPosition();
 			}
 		}
 		else if (app->getKeyUp().isDown())
@@ -95,7 +182,8 @@ void Game::update(uint32_t dt)
 			if (me.y > 0 && getTile(me.x, me.y - 1) == Tile::empty && (other.x != me.x || other.y != me.y - 1))
 			{
 				// we can move up
-				updateMyPosition(0, -1);
+				me.moveTo(me.x, me.y - 1);
+				sendMyPosition();
 			}
 		}
 		else if (app->getKeyDown().isDown())
@@ -103,25 +191,19 @@ void Game::update(uint32_t dt)
 			if (me.y < MAP_HEIGHT - 1 && getTile(me.x, me.y + 1) == Tile::empty && (other.x != me.x || other.y != me.y + 1))
 			{
 				// we can move down
-				updateMyPosition(0, 1);
+				me.moveTo(me.x, me.y + 1);
+				sendMyPosition();
 			}
 		}
-	}
-	else
-	{
-		m_moveTimer += dt;
 	}
 
 	if (m_gotMoveMsg)
 	{
 		m_gotMoveMsg = false;
 
-		Player& other = getOtherPlayer();
-
 		other.x = m_moveMsg.x;
 		other.y = m_moveMsg.y;
-
-		setDirty();
+		other.moveTo(m_moveMsg.targetX, m_moveMsg.targetY);
 	}
 }
 
@@ -136,17 +218,12 @@ void Game::disconnect()
 	gs::MainMenu::switchTo();
 }
 
-void Game::updateMyPosition(int8_t x, int8_t y)
+void Game::sendMyPosition()
 {
-	m_moveTimer = 0;
-
 	Player& me = getMyPlayer();
 
-	me.x += x;
-	me.y += y;
-
-	setDirty();
-
+	m_moveMsg.targetX = me.targetX;
+	m_moveMsg.targetY = me.targetY;
 	m_moveMsg.x = me.x;
 	m_moveMsg.y = me.y;
 
@@ -217,8 +294,8 @@ void Game::render()
 		}
 	}
 
-	renderCell(m_players[0].x, m_players[0].y, tile_character_a_bmp);
-	renderCell(m_players[1].x, m_players[1].y, tile_character_b_bmp);
+	m_players[0].render();
+	m_players[1].render();
 
 	device::Display::flush();
 }
@@ -256,8 +333,10 @@ void Game::build()
 		{
 			Tile tile = *tiles++;
 
-			if (tile == Tile::empty)
+			if (tile != Tile::wall)
 			{
+				setTile(i, j, Tile::empty);
+
 				if (j < 2 && i < 2)
 				{
 					continue;
@@ -299,10 +378,8 @@ void Game::build()
 	setTile(MAP_WIDTH - 2, MAP_HEIGHT - 1, Tile::empty);
 
 	// setup players
-	m_players[0].x = 0;
-	m_players[0].y = 0;
-	m_players[1].x = MAP_WIDTH - 1;
-	m_players[1].y = MAP_HEIGHT - 1;
+	m_players[0].init(0, 0, this, tile_character_a_bmp);
+	m_players[1].init(MAP_WIDTH - 1, MAP_HEIGHT - 1, this, tile_character_b_bmp);
 }
 
 void Game::serialize(msg::Map* mapMsg)
@@ -334,14 +411,10 @@ void Game::init()
 		generate();
 
 		m_myPlayerId = 0;
-		m_mySprite = tile_character_a_bmp;
-		m_otherSprite = tile_character_b_bmp;
 	}
 	else
 	{
 		m_myPlayerId = 1;
-		m_mySprite = tile_character_b_bmp;
-		m_otherSprite = tile_character_a_bmp;
 	}
 }
 

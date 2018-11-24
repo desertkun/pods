@@ -55,7 +55,7 @@ void MainMenu::init()
 {
 	m_cnt = 0;
 
-	//device::Sound::playMelody(&Melodies::Intro[0]);
+	device::Sound::playMelody(&Melodies::Intro[0]);
 
 	device::Display::invertDisplay(false);
 	device::Display::clear();

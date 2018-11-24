@@ -8,6 +8,7 @@
 
 #include "app/gs/game.h"
 #include "app/gs/mainmenu.h"
+#include "app/gs/result.h"
 #include "app/application.h"
 #include "device/display.h"
 #include "device/network.h"
@@ -41,8 +42,217 @@ int8_t sgn(int8_t val) {
     return (int8_t(0) < val) - (val < int8_t(0));
 }
 
+const uint32_t Bomb::TIME = 4000;
+const uint32_t Bomb::EXPLOSION_TIME = 600;
+
+
+void Bomb::place(uint8_t x, uint8_t y, uint8_t power)
+{
+	this->x = x;
+	this->y = y;
+	this->power = power;
+
+	timer = 0;
+	state = BombState::active;
+	_render = true;
+
+	Game::SetDirty();
+}
+
+void Bomb::removeExplosions()
+{
+	state = BombState::normal;
+	timer = 0;
+
+	Game& game = Game::s_instance;
+
+	game.setTile(x, y, Tile::empty);
+
+	// left
+	for (uint8_t _x = x - 1, p = power; _x >= 0 && p > 0; _x--, p--)
+	{
+		if (game.getTile(_x, y) != Tile::explosion)
+			break;
+
+		game.setTile(_x, y, Tile::empty);
+	}
+
+	// right
+	for (uint8_t _x = x + 1, p = power; _x <= MAP_WIDTH - 1 && p > 0; _x++, p--)
+	{
+		if (game.getTile(_x, y) != Tile::explosion)
+			break;
+
+		game.setTile(_x, y, Tile::empty);
+	}
+
+	// up
+	for (uint8_t _y = y - 1, p = power; _y >= 0 && p > 0; _y--, p--)
+	{
+		if (game.getTile(x, _y) != Tile::explosion)
+			break;
+
+		game.setTile(x, _y, Tile::empty);
+	}
+
+	// down
+	for (uint8_t _y = y + 1, p = power; _y <= MAP_HEIGHT - 1 && p > 0; _y++, p--)
+	{
+		if (game.getTile(x, _y) != Tile::explosion)
+			break;
+
+		game.setTile(x, _y, Tile::empty);
+	}
+
+	Game::SetDirty();
+}
+
+void Bomb::explode()
+{
+	Game& game = Game::s_instance;
+
+	game.setTile(x, y, Tile::explosion);
+
+	// left
+	for (uint8_t _x = x - 1, p = power; _x >= 0 && p > 0; _x--, p--)
+	{
+		if (game.checkTile(_x, y))
+			break;
+
+		game.setTile(_x, y, Tile::explosion);
+	}
+
+	// right
+	for (uint8_t _x = x + 1, p = power; _x <= MAP_WIDTH - 1 && p > 0; _x++, p--)
+	{
+		if (game.checkTile(_x, y))
+			break;
+
+		game.setTile(_x, y, Tile::explosion);
+	}
+
+	// up
+	for (uint8_t _y = y - 1, p = power; _y >= 0 && p > 0; _y--, p--)
+	{
+		if (game.checkTile(x, _y))
+			break;
+
+		game.setTile(x, _y, Tile::explosion);
+	}
+
+	// down
+	for (uint8_t _y = y + 1, p = power; _y <= MAP_HEIGHT - 1 && p > 0; _y++, p--)
+	{
+		if (game.checkTile(x, _y))
+			break;
+
+		game.setTile(x, _y, Tile::explosion);
+	}
+
+	state = BombState::explosion;
+	timer = 0;
+
+	Game::SetDirty();
+}
+
+void Bomb::update(uint32_t dt)
+{
+	switch (state)
+	{
+		case BombState::active:
+		{
+			timer += dt;
+
+			bool now = timer % 500 > 250;
+
+			if (now != _render)
+			{
+				_render = now;
+				Game::SetDirty();
+			}
+
+			if (timer > Bomb::TIME)
+			{
+				explode();
+			}
+
+			break;
+		}
+		case BombState::explosion:
+		{
+			timer += dt;
+
+			if (timer > Bomb::EXPLOSION_TIME)
+			{
+				removeExplosions();
+			}
+
+			Game::SetDirty();
+
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
+
+}
+
+void Bomb::render()
+{
+	if (state != BombState::active)
+		return;
+
+	const uint8_t* sprite;
+
+	if (timer < 1000)
+	{
+		sprite = tile_bomb_1_bmp;
+	}
+	else if (timer < 2000)
+	{
+		sprite = tile_bomb_2_bmp;
+	}
+	else if (timer < 3000)
+	{
+		sprite = tile_bomb_3_bmp;
+	}
+	else
+	{
+		sprite = tile_bomb_4_bmp;
+	}
+
+	if (!_render)
+		return;
+
+	device::Display::drawImage(
+		MAP_OFFSET_X + x * 8,
+		MAP_OFFSET_Y + y * 8,
+		8, 8, sprite);
+}
+
+///////////
+
+void Player::moved()
+{
+	Game& game = Game::s_instance;
+
+	Tile at = game.getTile(x, y);
+
+	if (at == Tile::powerup)
+	{
+		game.removePowerUp();
+		game.setTile(x, y, Tile::empty);
+
+		bombPower++;
+	}
+}
+
 void Player::update(uint32_t dt)
 {
+	bomb.update(dt);
+
 	switch (state)
 	{
 		case PlayerState::moving:
@@ -60,7 +270,7 @@ void Player::update(uint32_t dt)
 				offsetY += signY;
 				movedBy += 1;
 
-				game->setDirty();
+				Game::SetDirty();
 
 				if (movedBy >= 8)
 				{
@@ -71,6 +281,8 @@ void Player::update(uint32_t dt)
 					movedBy = 0;
 					movingTimer = 0;
 					state = PlayerState::normal;
+
+					moved();
 				}
 			}
 
@@ -96,13 +308,13 @@ void Player::moveTo(uint8_t x, uint8_t y)
 	state = PlayerState::moving;
 }
 
-void Player::init(uint8_t x, uint8_t y, Game* game, const unsigned char* sprite)
+void Player::init(uint8_t x, uint8_t y, const unsigned char* sprite)
 {
 	this->x = x;
 	this->y = y;
-	this->game = game;
 	this->sprite = sprite;
 
+	bombPower = 1;
 	offsetX = 0;
 	offsetY = 0;
 	movingTimer = 0;
@@ -115,9 +327,57 @@ void Player::render()
 		MAP_OFFSET_X + x * 8 + offsetX,
 		MAP_OFFSET_Y + y * 8 + offsetY,
 		8, 8, sprite);
+
+	bomb.render();
 }
 
 /////////
+
+
+bool Game::checkTile(uint8_t x, uint8_t y)
+{
+	Tile tile = getTile(x, y);
+
+	if (device::System::isHost())
+	{
+		for (uint8_t i = 0; i < 2; i++)
+		{
+			Player& player = m_players[i];
+
+			if (player.x == x && player.y == y)
+			{
+				m_resultMsg.won = m_myPlayerId == i;
+
+				if (!device::Network::send(MSG_RESULT, sizeof(m_resultMsg), &m_resultMsg))
+				{
+					disconnect();
+					return true;
+				}
+
+				Result::switchTo(m_myPlayerId != i);
+				return true;
+			}
+		}
+	}
+
+	if (tile == Tile::wall)
+		return true;
+
+	if (tile == Tile::block)
+	{
+		setTile(x, y, Tile::explosion);
+		return true;
+	}
+
+	if (tile == Tile::blockWithPowerup)
+	{
+		setTile(x, y, Tile::powerup);
+		addPowerUp();
+		return true;
+	}
+
+	return false;
+}
 
 void Game::messageReceived(uint8_t messageType, uint8_t dataSize, void* data)
 {
@@ -129,7 +389,51 @@ void Game::messageReceived(uint8_t messageType, uint8_t dataSize, void* data)
 			m_gotMoveMsg = true;
 			break;
 		}
+		case MSG_BOMB:
+		{
+			RECEIVE_MSG(m_bombMsg);
+			m_gotBombMsg = true;
+			break;
+		}
+		case MSG_RESULT:
+		{
+			RECEIVE_MSG(m_resultMsg);
+			m_gotResultMsg = true;
+			break;
+		}
 	}
+}
+
+bool Game::checkLocation(uint8_t x, uint8_t y) const
+{
+	Tile at = getTile(x, y);
+
+	switch (at)
+	{
+		case Tile::powerup:
+		case Tile::empty:
+		{
+			break;
+		}
+		default:
+		{
+			return false;
+		}
+	}
+
+	const Player& me = getMyPlayer();
+	const Player& other = getOtherPlayer();
+
+	if (other.x == x && other.y == y)
+		return false;
+
+	if (me.bomb.state == BombState::active && me.bomb.x == x && me.bomb.y == y)
+		return false;
+
+	if (other.bomb.state == BombState::active && other.bomb.x == x && other.bomb.y == y)
+		return false;
+
+	return true;
 }
 
 void Game::update(uint32_t dt)
@@ -138,7 +442,7 @@ void Game::update(uint32_t dt)
 	{
 		m_refreshTimer = 0;
 
-		if (m_dirty)
+		if (m_dirty || m_activePowerUps > 0)
 		{
 			m_dirty = false;
 			render();
@@ -155,13 +459,13 @@ void Game::update(uint32_t dt)
 	me.update(dt);
 	other.update(dt);
 
+	app::Application* app = app::Application::s_instance;
+
 	if (me.state == PlayerState::normal)
 	{
-		app::Application* app = app::Application::s_instance;
-
 		if (app->getKeyLeft().isDown())
 		{
-			if (me.x > 0 && getTile(me.x - 1, me.y) == Tile::empty && (other.x != me.x - 1 || other.y != me.y))
+			if (me.x > 0 && checkLocation(me.x - 1, me.y))
 			{
 				// we can move left
 				me.moveTo(me.x - 1, me.y);
@@ -170,7 +474,7 @@ void Game::update(uint32_t dt)
 		}
 		else if (app->getKeyRight().isDown())
 		{
-			if (me.x < MAP_WIDTH - 1 && getTile(me.x + 1, me.y) == Tile::empty && (other.x != me.x + 1 || other.y != me.y))
+			if (me.x < MAP_WIDTH - 1 && checkLocation(me.x + 1, me.y))
 			{
 				// we can move right
 				me.moveTo(me.x + 1, me.y);
@@ -179,7 +483,7 @@ void Game::update(uint32_t dt)
 		}
 		else if (app->getKeyUp().isDown())
 		{
-			if (me.y > 0 && getTile(me.x, me.y - 1) == Tile::empty && (other.x != me.x || other.y != me.y - 1))
+			if (me.y > 0 && checkLocation(me.x, me.y - 1))
 			{
 				// we can move up
 				me.moveTo(me.x, me.y - 1);
@@ -188,12 +492,26 @@ void Game::update(uint32_t dt)
 		}
 		else if (app->getKeyDown().isDown())
 		{
-			if (me.y < MAP_HEIGHT - 1 && getTile(me.x, me.y + 1) == Tile::empty && (other.x != me.x || other.y != me.y + 1))
+			if (me.y < MAP_HEIGHT - 1 && checkLocation(me.x, me.y + 1))
 			{
 				// we can move down
 				me.moveTo(me.x, me.y + 1);
 				sendMyPosition();
 			}
+		}
+	}
+
+	if (me.bomb.state == BombState::normal && app->getKeyA().isJustDown())
+	{
+		me.bomb.place(me.x, me.y, me.bombPower);
+
+		m_bombMsg.x = me.x;
+		m_bombMsg.y = me.y;
+		m_bombMsg.power = me.bombPower;
+
+		if (!device::Network::send(MSG_BOMB, sizeof(m_bombMsg), &m_bombMsg))
+		{
+			disconnect();
 		}
 	}
 
@@ -204,6 +522,20 @@ void Game::update(uint32_t dt)
 		other.x = m_moveMsg.x;
 		other.y = m_moveMsg.y;
 		other.moveTo(m_moveMsg.targetX, m_moveMsg.targetY);
+	}
+
+	if (m_gotBombMsg)
+	{
+		m_gotBombMsg = false;
+
+		other.bomb.place(m_bombMsg.x, m_bombMsg.y, m_bombMsg.power);
+	}
+
+	if (m_gotResultMsg)
+	{
+		m_gotResultMsg = false;
+
+		Result::switchTo(m_resultMsg.won);
 	}
 }
 
@@ -276,9 +608,20 @@ void Game::render()
 					break;
 				}
 
+				case Tile::blockWithPowerup:
 				case Tile::block:
 				{
 					tile_image = tile_block_bmp;
+					break;
+				}
+				case Tile::explosion:
+				{
+					tile_image = rand() % 2 == 0 ? tile_explosion_1_bmp : tile_explosion_2_bmp;
+					break;
+				}
+				case Tile::powerup:
+				{
+					tile_image = HAL_GetTick() % 100 > 50 ? tile_star_1_bmp : tile_star_2_bmp;
 					break;
 				}
 
@@ -364,7 +707,7 @@ void Game::build()
 		uint8_t v = pool[i];
 		uint8_t x = v & 0xF;
 		uint8_t y = v >> 4;
-		setTile(x, y, Tile::block);
+		setTile(x, y, (i > cnt - 6) ? Tile::blockWithPowerup : Tile::block);
 	}
 
 	// free up space for players
@@ -378,8 +721,8 @@ void Game::build()
 	setTile(MAP_WIDTH - 2, MAP_HEIGHT - 1, Tile::empty);
 
 	// setup players
-	m_players[0].init(0, 0, this, tile_character_a_bmp);
-	m_players[1].init(MAP_WIDTH - 1, MAP_HEIGHT - 1, this, tile_character_b_bmp);
+	m_players[0].init(0, 0, tile_character_a_bmp);
+	m_players[1].init(MAP_WIDTH - 1, MAP_HEIGHT - 1, tile_character_b_bmp);
 }
 
 void Game::serialize(msg::Map* mapMsg)
@@ -395,6 +738,9 @@ void Game::deserialize(msg::Map* mapMsg)
 void Game::init()
 {
 	m_gotMoveMsg = false;
+	m_gotBombMsg = false;
+	m_gotResultMsg = false;
+	m_activePowerUps = 0;
 
 	memset(m_tiles, 0x00, MAP_WIDTH * MAP_HEIGHT);
 

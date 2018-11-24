@@ -42,7 +42,7 @@ void Intro::init()
 	device::Display::clear();
 	device::Display::drawImage(60, 8, 16, 16, heart_bmp);
 	device::Display::drawText(32, 32, "dedicated to", device::Display::Font::f_5x7);
-	device::Display::drawText(12, 42, "Ekaterina Glukhaia", device::Display::Font::f_5x7);
+	device::Display::drawText(39, 42, "Ekaterina", device::Display::Font::f_5x7);
 
 	device::Display::flush();
 

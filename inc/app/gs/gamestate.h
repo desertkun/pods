@@ -13,7 +13,8 @@ enum class ID
 	intro,
 	mainmenu,
 	search,
-	game
+	game,
+	result
 };
 
 class GameState

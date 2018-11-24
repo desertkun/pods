@@ -25,9 +25,9 @@ enum class Tile
 	empty = 0,
 	wall,
 	block,
-	bonusBombs,
-	bonusSpeed,
-	bonusExplosion
+	blockWithPowerup,
+	powerup,
+	explosion
 };
 
 class Game;
@@ -38,23 +38,49 @@ enum class PlayerState
 	moving = 1
 };
 
+enum class BombState
+{
+	normal,
+	active,
+	explosion
+};
+
+struct Bomb
+{
+	static const uint32_t TIME, EXPLOSION_TIME;
+
+	BombState state;
+	uint32_t timer;
+	bool _render;
+	uint8_t x, y;
+	uint8_t power;
+
+	void removeExplosions();
+	void explode();
+	void place(uint8_t x, uint8_t y, uint8_t power);
+	void update(uint32_t dt);
+	void render();
+};
+
 struct Player
 {
+	Bomb bomb;
 	PlayerState state;
 	uint8_t x, y, targetX, targetY, movingTimer, movedBy;
 	int8_t offsetX, offsetY;
-	Game* game;
+	uint8_t bombPower;
 	const unsigned char* sprite;
 
-	void init(uint8_t x, uint8_t y, Game* game, const unsigned char* sprite);
+	void init(uint8_t x, uint8_t y, const unsigned char* sprite);
 	void update(uint32_t dt);
 	void moveTo(uint8_t x, uint8_t y);
 	void render();
+	void moved();
 };
 
 class Game: public GameState
 {
-private:
+public:
 	static Game s_instance;
 
 public:
@@ -68,13 +94,21 @@ public:
 	virtual void messageReceived(uint8_t messageType, uint8_t dataSize, void* data) override;
 
 public:
-	void setDirty() { m_dirty = true; }
+	static void SetDirty() { Game::s_instance.m_dirty = true; }
 
 	void serialize(msg::Map* mapMsg);
 	void deserialize(msg::Map* mapMsg);
 	void started();
 
+	bool checkTile(uint8_t x, uint8_t y);
+	void addPowerUp() { m_activePowerUps++; }
+	void removePowerUp() { m_activePowerUps--; }
+
+	void setTile(uint8_t x, uint8_t y, Tile tile);
+	Tile getTile(uint8_t x, uint8_t y) const;
+
 private:
+	bool checkLocation(uint8_t x, uint8_t y) const;
 	void sendMyPosition();
 	void clearCell(uint8_t x, uint8_t y);
 	void renderCell(uint8_t x, uint8_t y, const unsigned char* image);
@@ -90,20 +124,24 @@ private:
 	Player& getMyPlayer() { return m_players[m_myPlayerId]; }
 	Player& getOtherPlayer() { return m_players[1 - m_myPlayerId]; }
 
-	void setTile(uint8_t x, uint8_t y, Tile tile);
-	Tile getTile(uint8_t x, uint8_t y) const;
-
 private:
 	Tile m_tiles[MAP_WIDTH * MAP_HEIGHT];
 	Player m_players[2];
 	uint8_t m_myPlayerId;
 	uint32_t m_seed;
+	uint8_t m_activePowerUps;
 
 	uint32_t m_refreshTimer;
 	bool m_dirty;
 
 	msg::Move m_moveMsg;
 	bool m_gotMoveMsg;
+
+	msg::Bomb m_bombMsg;
+	bool m_gotBombMsg;
+
+	msg::Result m_resultMsg;
+	bool m_gotResultMsg;
 };
 
 };

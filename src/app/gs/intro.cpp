@@ -9,6 +9,8 @@
 #include "app/gs/mainmenu.h"
 #include "app/application.h"
 #include "device/display.h"
+#include "device/sound.h"
+#include "app/melodies.h"
 
 extern const unsigned char heart_bmp[];
 extern const unsigned char heart_inside_bmp[];
@@ -29,40 +31,13 @@ void Intro::release()
 	//
 }
 
-static void refresh()
-{
-	device::Display::clear();
-
-	for (int i = 0; i <= 64; i++)
-	{
-		device::Display::drawLine(0, i, i * 2 - 1, 0);
-		device::Display::drawLine(127, 64 - i, 127 - i * 2 - 1, 63);
-
-		if (i % 4 == 0)
-			device::Display::flush();
-	}
-
-	device::Display::setModeReset();
-
-	for (int i = 0; i <= 64; i++)
-	{
-		device::Display::drawLine(0, i, i * 2 - 1, 0);
-		device::Display::drawLine(127, 64 - i, 127 - i * 2 - 1, 63);
-
-		if (i % 4 == 0)
-			device::Display::flush();
-	}
-
-	device::Display::setModeSet();
-	device::Display::clear();
-	device::Display::flush();
-}
-
 void Intro::init()
 {
 	device::Display::invertDisplay(false);
 
-	refresh();
+	device::Display::drawRefreshSequence();
+
+	device::Sound::playMelody(&Melodies::Startup[0]);
 
 	device::Display::clear();
 	device::Display::drawImage(60, 8, 16, 16, heart_bmp);
@@ -89,7 +64,7 @@ void Intro::init()
 
 	HAL_Delay(2000);
 
-	refresh();
+	device::Display::drawRefreshSequence();
 
 	gs::MainMenu::switchTo();
 

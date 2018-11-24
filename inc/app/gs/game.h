@@ -30,6 +30,11 @@ enum class Tile
 	bonusExplosion
 };
 
+struct Player
+{
+	uint8_t x, y;
+};
+
 class Game: public GameState
 {
 private:
@@ -51,14 +56,41 @@ public:
 	void started();
 
 private:
+	void updateMyPosition(int8_t x, int8_t y);
+	void clearCell(uint8_t x, uint8_t y);
+	void renderCell(uint8_t x, uint8_t y, const unsigned char* image);
+	void getReady();
 	void render();
 	void generate();
+	void build();
+	void disconnect();
+
+	const Player& getMyPlayer() const { return m_players[m_myPlayerId]; }
+	const Player& getOtherPlayer() const { return m_players[1 - m_myPlayerId]; }
+
+	Player& getMyPlayer() { return m_players[m_myPlayerId]; }
+	Player& getOtherPlayer() { return m_players[1 - m_myPlayerId]; }
+
+	void setDirty() { m_dirty = true; }
 
 	void setTile(uint8_t x, uint8_t y, Tile tile);
 	Tile getTile(uint8_t x, uint8_t y) const;
 
 private:
 	Tile m_tiles[MAP_WIDTH * MAP_HEIGHT];
+	Player m_players[2];
+	uint8_t m_myPlayerId;
+	uint32_t m_seed;
+
+	const unsigned char* m_mySprite;
+	const unsigned char* m_otherSprite;
+
+	uint32_t m_moveTimer;
+	uint32_t m_refreshTimer;
+	bool m_dirty;
+
+	msg::Move m_moveMsg;
+	bool m_gotMoveMsg;
 };
 
 };

@@ -12,6 +12,7 @@
 
 #define MSG_HELLO (0)
 #define MSG_MAP (1)
+#define MSG_MOVE (2)
 
 #define RECEIVE_MSG(x) std::memcpy(&x, data, sizeof(x));
 
@@ -19,9 +20,13 @@ namespace msg
 {
 	struct __attribute__ ((packed)) Map
 	{
-		uint8_t data[11];
+		uint32_t seed;
 	};
 
+	struct __attribute__ ((packed)) Move
+	{
+		uint8_t x, y;
+	};
 };
 
 

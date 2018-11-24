@@ -18,22 +18,18 @@ extern "C" {
 
 namespace device
 {
-	struct Tone {
-		uint16_t frequency;
-		uint8_t  duration;
-	};
-
 	class Sound
 	{
 	public:
+		static void playNextTone();
 		static void complete();
 		static void playTone(uint16_t freq, uint32_t duration);
-		static void playMelody(const Tone* tones);
+		static void playMelody(const uint16_t* tones);
 		static void stop();
 		static void init();
 	private:
 		static volatile bool s_enabled;
-		static volatile Tone* s_tones;
+		static volatile uint16_t* s_tones;
 	};
 
 };

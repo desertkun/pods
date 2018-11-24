@@ -34,10 +34,11 @@ void Key::update()
 		{
 			bool currentValue = HAL_GPIO_ReadPin(m_port, m_pin);
 
-			if (!currentValue)
+			if (currentValue)
 			{
 				m_time = HAL_GetTick();
 				m_state = KeyState::goingUp;
+				m_justDown = false;
 			}
 
 			break;
@@ -46,7 +47,7 @@ void Key::update()
 		{
 			bool currentValue = HAL_GPIO_ReadPin(m_port, m_pin);
 
-			if (currentValue)
+			if (!currentValue)
 			{
 				m_time = HAL_GetTick();
 				m_state = KeyState::goingDown;
@@ -62,7 +63,7 @@ void Key::update()
 			{
 				bool currentValue = HAL_GPIO_ReadPin(m_port, m_pin);
 
-				if (currentValue)
+				if (!currentValue)
 				{
 					m_state = KeyState::down;
 				}
@@ -83,14 +84,14 @@ void Key::update()
 			{
 				bool currentValue = HAL_GPIO_ReadPin(m_port, m_pin);
 
-				if (currentValue)
-				{
-					m_state = KeyState::up;
-				}
-				else
+				if (!currentValue)
 				{
 					m_state = KeyState::down;
 					m_justDown = true;
+				}
+				else
+				{
+					m_state = KeyState::up;
 				}
 			}
 

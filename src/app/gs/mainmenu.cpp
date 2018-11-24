@@ -9,6 +9,8 @@
 #include "app/application.h"
 #include "app/gs/search.h"
 #include "device/display.h"
+#include "device/sound.h"
+#include "app/melodies.h"
 
 extern const unsigned char logo_bmp [];
 extern const unsigned char button_a_bmp [];
@@ -24,8 +26,6 @@ void MainMenu::update(uint32_t dt)
 
 	device::Display::clear();
 	device::Display::drawImage(8, 8 + (m_cnt > 1800 ? ((m_cnt % 50) > 25 ? 2 : 0) : 0), 112, 16, logo_bmp);
-
-
 
 	if (m_cnt % 500 < 250)
 	{
@@ -48,12 +48,14 @@ void MainMenu::update(uint32_t dt)
 
 void MainMenu::release()
 {
-	//
+	device::Sound::stop();
 }
 
 void MainMenu::init()
 {
 	m_cnt = 0;
+
+	device::Sound::playMelody(&Melodies::Intro[0]);
 
 	device::Display::invertDisplay(false);
 	device::Display::clear();

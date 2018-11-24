@@ -17,37 +17,30 @@ namespace device
 {
 
 volatile bool Sound::s_enabled = false;
-volatile Tone* Sound::s_tones = NULL;
+volatile uint16_t* Sound::s_tones = NULL;
 
-void Sound::playMelody(const Tone* tones)
+void Sound::playMelody(const uint16_t* tones)
 {
-	s_tones = (volatile Tone*)tones;
+	s_tones = (volatile uint16_t*)tones;
 
-	playTone(s_tones->frequency, s_tones->duration);
+	Sound::playNextTone();
 }
 
 void Sound::playTone(uint16_t freq, uint32_t duration)
 {
-	if (freq < 100 || freq > 8000 || duration == 0)
-	{
-		Sound::stop();
-	}
-	else
-	{
-		GPIO_InitTypeDef GPIO_InitStruct;
+	GPIO_InitTypeDef GPIO_InitStruct;
 
-		// Configure buzzer pin
-	    GPIO_InitStruct.Pin = BUZZER_Pin;
-	    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-	    GPIO_InitStruct.Pull = GPIO_PULLUP;
-	    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
-	    HAL_GPIO_Init(BUZZER_GPIO_Port, &GPIO_InitStruct);
+	// Configure buzzer pin
+	GPIO_InitStruct.Pin = BUZZER_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	GPIO_InitStruct.Pull = GPIO_PULLUP;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
+	HAL_GPIO_Init(BUZZER_GPIO_Port, &GPIO_InitStruct);
 
-	    BEEPER_TIM->ARR = SystemCoreClock / (freq * BEEPER_TIM->PSC) - 1;
+	BEEPER_TIM->ARR = SystemCoreClock / (freq * BEEPER_TIM->PSC) - 1;
 
-	    __HAL_TIM_SET_COMPARE(&BEEPER_HTIM, BEEPER_CHANNEL, BEEPER_TIM->ARR >> 1);
-	    HAL_TIM_PWM_Start(&BEEPER_HTIM, BEEPER_CHANNEL);
-	}
+	__HAL_TIM_SET_COMPARE(&BEEPER_HTIM, BEEPER_CHANNEL, BEEPER_TIM->ARR >> 1);
+	HAL_TIM_PWM_Start(&BEEPER_HTIM, BEEPER_CHANNEL);
 
 	if (duration > 0)
 	{
@@ -59,21 +52,33 @@ void Sound::playTone(uint16_t freq, uint32_t duration)
 	}
 }
 
+static const uint16_t Frequencies[] = { 4186, 4435, 4699, 4978, 5274, 5588, 5920, 6272, 6645, 7040, 7459, 7902 };
+
+void Sound::playNextTone()
+{
+	uint16_t nextTone = *s_tones;
+
+	if (nextTone == 0)
+	{
+		Sound::stop();
+		s_tones = NULL;
+	}
+	else
+	{
+		int16_t duration = nextTone >> 8;
+		uint16_t frequency = Frequencies[nextTone&0xF] / ( 1 << (8-(nextTone>>4 & 0xF)) );
+
+		playTone(frequency, duration);
+	}
+}
+
 void Sound::complete()
 {
 	if (s_tones)
 	{
 		s_tones++;
 
-		if (s_tones->duration == 0)
-		{
-			Sound::stop();
-			s_tones = NULL;
-		}
-		else
-		{
-			playTone(s_tones->frequency, s_tones->duration * 10);
-		}
+		Sound::playNextTone();
 	}
 	else
 	{
@@ -83,6 +88,8 @@ void Sound::complete()
 
 void Sound::stop()
 {
+	s_tones = NULL;
+
 	GPIO_InitTypeDef GPIO_InitStruct;
 
 	// Configure buzzer pin as analog input without pullup to conserve power
@@ -93,6 +100,7 @@ void Sound::stop()
     HAL_GPIO_Init(BUZZER_GPIO_Port, &GPIO_InitStruct);
 
     HAL_TIM_PWM_Stop(&BEEPER_HTIM, BEEPER_CHANNEL);
+	HAL_TIM_Base_Stop_IT(&BEEPER_DELAY_HTIM);
 }
 
 void Sound::init()

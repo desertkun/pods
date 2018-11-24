@@ -74,8 +74,6 @@
 #define OLED_RES_GPIO_Port GPIOB
 #define OLED_DC_Pin GPIO_PIN_6
 #define OLED_DC_GPIO_Port GPIOC
-#define BUZZER_TEST_Pin GPIO_PIN_8
-#define BUZZER_TEST_GPIO_Port GPIOA
 #define BUZZER_Pin GPIO_PIN_6
 #define BUZZER_GPIO_Port GPIOB
 #define DEVICE_ID_Pin GPIO_PIN_9

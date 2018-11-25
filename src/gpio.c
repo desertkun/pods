@@ -77,9 +77,9 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOB, OLED_CS_Pin|OLED_RES_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : PCPin PCPin PCPin PCPin 
-                           PCPin PCPin */
-  GPIO_InitStruct.Pin = CTL_A_Pin|CTL_B_Pin|CTL_UP_Pin|CTL_DOWN_Pin 
-                          |CTL_LEFT_Pin|CTL_RIGHT_Pin;
+                           PCPin */
+  GPIO_InitStruct.Pin = CTL_A_Pin|CTL_UP_Pin|CTL_DOWN_Pin|CTL_LEFT_Pin 
+                          |CTL_RIGHT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);

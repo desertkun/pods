@@ -28,7 +28,6 @@ namespace app
 		void messageReceived(uint8_t dataSize, uint8_t* data);
 
 		device::Key& getKeyA() { return m_keyA; }
-		device::Key& getKeyB() { return m_keyB; }
 		device::Key& getKeyUp() { return m_keyUp; }
 		device::Key& getKeyDown() { return m_keyDown; }
 		device::Key& getKeyLeft() { return m_keyLeft; }
@@ -36,7 +35,6 @@ namespace app
 
 	private:
 		device::Key m_keyA;
-		device::Key m_keyB;
 
 		device::Key m_keyUp;
 		device::Key m_keyDown;

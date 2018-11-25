@@ -21,7 +21,6 @@ Application* Application::s_instance = nullptr;
 
 Application::Application() :
 	m_keyA(CTL_A_GPIO_Port, CTL_A_Pin),
-	m_keyB(CTL_B_GPIO_Port, CTL_B_Pin),
 	m_keyUp(CTL_UP_GPIO_Port, CTL_UP_Pin),
 	m_keyDown(CTL_DOWN_GPIO_Port, CTL_DOWN_Pin),
 	m_keyLeft(CTL_LEFT_GPIO_Port, CTL_LEFT_Pin),

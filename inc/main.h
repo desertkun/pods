@@ -51,8 +51,6 @@
 
 #define CTL_A_Pin GPIO_PIN_13
 #define CTL_A_GPIO_Port GPIOC
-#define CTL_B_Pin GPIO_PIN_14
-#define CTL_B_GPIO_Port GPIOC
 #define CTL_UP_Pin GPIO_PIN_15
 #define CTL_UP_GPIO_Port GPIOC
 #define CTL_DOWN_Pin GPIO_PIN_0

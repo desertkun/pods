@@ -1,12 +1,3 @@
 (sym_lib_table
   (lib (name pods-rescue)(type Legacy)(uri ${KIPRJMOD}/pods-rescue.lib)(options "")(descr ""))
-  (lib (name stm32f030)(type Legacy)(uri ${KIPRJMOD}/lib/stm32f030.lib)(options "")(descr ""))
-  (lib (name stm32f100)(type Legacy)(uri ${KIPRJMOD}/lib/stm32f100.lib)(options "")(descr ""))
-  (lib (name stm32f103)(type Legacy)(uri ${KIPRJMOD}/lib/stm32f103.lib)(options "")(descr ""))
-  (lib (name nRF24L01)(type Legacy)(uri ${KIPRJMOD}/lib/nRF24L01.lib)(options "")(descr ""))
-  (lib (name tp4056)(type Legacy)(uri ${KIPRJMOD}/lib/tp4056.lib)(options "")(descr ""))
-  (lib (name sh1106)(type Legacy)(uri ${KIPRJMOD}/lib/sh1106.lib)(options "")(descr ""))
-  (lib (name adp1710aujz)(type Legacy)(uri ${KIPRJMOD}/lib/adp1710aujz.lib)(options "")(descr ""))
-  (lib (name swd)(type Legacy)(uri ${KIPRJMOD}/lib/swd.lib)(options "")(descr ""))
-  (lib (name mt-02)(type Legacy)(uri ${KIPRJMOD}/lib/mt-02.lib)(options "")(descr ""))
 )

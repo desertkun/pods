@@ -33,6 +33,7 @@ namespace msg
 
 	struct __attribute__ ((packed)) Bomb
 	{
+		uint8_t id;
 		uint8_t power;
 		uint8_t x, y;
 	};

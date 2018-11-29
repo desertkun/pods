@@ -13,6 +13,8 @@
 #include "device/display.h"
 #include "device/network.h"
 #include "device/system.h"
+#include "device/sound.h"
+#include "app/melodies.h"
 #include "app/messages.h"
 
 #include <cstring>
@@ -31,6 +33,8 @@ extern const unsigned char tile_explosion_2_bmp [];
 extern const unsigned char tile_star_1_bmp [];
 extern const unsigned char tile_star_2_bmp [];
 extern const unsigned char tile_empty_bmp [];
+extern const unsigned char tile_bomb_bonus_1_bmp [];
+extern const unsigned char tile_bomb_bonus_2_bmp [];
 
 
 namespace gs
@@ -56,6 +60,8 @@ void Bomb::place(uint8_t x, uint8_t y, uint8_t power)
 	state = BombState::active;
 	_render = true;
 
+	device::Sound::playMelody(&Melodies::PlaceBomb[0]);
+
 	Game::SetDirty();
 }
 
@@ -65,6 +71,7 @@ void Bomb::removeExplosions()
 	timer = 0;
 
 	Game& game = Game::s_instance;
+	game.removeShake();
 
 	game.setTile(x, y, Tile::empty);
 
@@ -111,6 +118,9 @@ void Bomb::explode()
 {
 	Game& game = Game::s_instance;
 
+	device::Sound::playMelody(&Melodies::Bomb[0]);
+
+	game.addShake();
 	game.setTile(x, y, Tile::explosion);
 
 	// left
@@ -242,16 +252,41 @@ void Player::moved()
 
 	if (at == Tile::powerup)
 	{
+		device::Sound::playMelody(&Melodies::Pickup[0]);
+
+		device::Display::invertDisplay(true);
+		HAL_Delay(50);
+		device::Display::invertDisplay(false);
+
 		game.removePowerUp();
 		game.setTile(x, y, Tile::empty);
 
-		bombPower++;
+		if (bombPower < 5)
+			bombPower++;
+	}
+
+	if (at == Tile::extraBomb)
+	{
+		device::Sound::playMelody(&Melodies::Pickup[0]);
+
+		device::Display::invertDisplay(true);
+		HAL_Delay(50);
+		device::Display::invertDisplay(false);
+
+		game.removePowerUp();
+		game.setTile(x, y, Tile::empty);
+
+		if (bombCount < MAX_BOMBS)
+			bombCount++;
 	}
 }
 
 void Player::update(uint32_t dt)
 {
-	bomb.update(dt);
+	for (uint8_t i = 0; i < MAX_BOMBS; i++)
+	{
+		bombs[i].update(dt);
+	}
 
 	switch (state)
 	{
@@ -314,7 +349,17 @@ void Player::init(uint8_t x, uint8_t y, const unsigned char* sprite)
 	this->y = y;
 	this->sprite = sprite;
 
+	for (uint8_t i = 0; i < MAX_BOMBS; i++)
+	{
+		Bomb& bomb = bombs[i];
+		bomb.state = BombState::normal;
+		bomb.timer = 0;
+		bomb._render = false;
+		bomb.power = 1;
+	}
+
 	bombPower = 1;
+	bombCount = 1;
 	offsetX = 0;
 	offsetY = 0;
 	movingTimer = 0;
@@ -328,7 +373,11 @@ void Player::render()
 		MAP_OFFSET_Y + y * 8 + offsetY,
 		8, 8, sprite);
 
-	bomb.render();
+
+	for (uint8_t i = 0; i < MAX_BOMBS; i++)
+	{
+		bombs[i].render();
+	}
 }
 
 /////////
@@ -360,6 +409,9 @@ bool Game::checkTile(uint8_t x, uint8_t y)
 		}
 	}
 
+	if (tile == Tile::explosion)
+		return true;
+
 	if (tile == Tile::wall)
 		return true;
 
@@ -372,6 +424,13 @@ bool Game::checkTile(uint8_t x, uint8_t y)
 	if (tile == Tile::blockWithPowerup)
 	{
 		setTile(x, y, Tile::powerup);
+		addPowerUp();
+		return true;
+	}
+
+	if (tile == Tile::blockWithExtraBomb)
+	{
+		setTile(x, y, Tile::extraBomb);
 		addPowerUp();
 		return true;
 	}
@@ -411,6 +470,7 @@ bool Game::checkLocation(uint8_t x, uint8_t y) const
 	switch (at)
 	{
 		case Tile::powerup:
+		case Tile::extraBomb:
 		case Tile::empty:
 		{
 			break;
@@ -427,11 +487,21 @@ bool Game::checkLocation(uint8_t x, uint8_t y) const
 	if (other.x == x && other.y == y)
 		return false;
 
-	if (me.bomb.state == BombState::active && me.bomb.x == x && me.bomb.y == y)
-		return false;
+	for (uint8_t i = 0; i < MAX_BOMBS; i++)
+	{
+		const Bomb& bomb = me.bombs[i];
 
-	if (other.bomb.state == BombState::active && other.bomb.x == x && other.bomb.y == y)
-		return false;
+		if (bomb.state == BombState::active && bomb.x == x && bomb.y == y)
+			return false;
+	}
+
+	for (uint8_t i = 0; i < MAX_BOMBS; i++)
+	{
+		const Bomb& bomb = other.bombs[i];
+
+		if (bomb.state == BombState::active && bomb.x == x && bomb.y == y)
+			return false;
+	}
 
 	return true;
 }
@@ -442,7 +512,7 @@ void Game::update(uint32_t dt)
 	{
 		m_refreshTimer = 0;
 
-		if (m_dirty || m_activePowerUps > 0)
+		if (m_dirty || m_activePowerUps > 0 || m_activeShake > 0)
 		{
 			m_dirty = false;
 			render();
@@ -501,19 +571,31 @@ void Game::update(uint32_t dt)
 		}
 	}
 
-	if (me.bomb.state == BombState::normal && app->getKeyA().isJustDown())
+	if (app->getKeyA().isJustDown())
 	{
-		me.bomb.place(me.x, me.y, me.bombPower);
-
-		m_bombMsg.x = me.x;
-		m_bombMsg.y = me.y;
-		m_bombMsg.power = me.bombPower;
-
-		if (!device::Network::send(MSG_BOMB, sizeof(m_bombMsg), &m_bombMsg))
+		for (uint8_t i = 0; i < me.bombCount; i++)
 		{
-			disconnect();
+			Bomb& bomb = me.bombs[i];
+
+			if (bomb.state == BombState::normal)
+			{
+				bomb.place(me.x, me.y, me.bombPower);
+
+				m_bombMsg.id = i;
+				m_bombMsg.x = me.x;
+				m_bombMsg.y = me.y;
+				m_bombMsg.power = me.bombPower;
+
+				if (!device::Network::send(MSG_BOMB, sizeof(m_bombMsg), &m_bombMsg))
+				{
+					disconnect();
+				}
+
+				break;
+			}
 		}
 	}
+
 
 	if (m_gotMoveMsg)
 	{
@@ -528,7 +610,9 @@ void Game::update(uint32_t dt)
 	{
 		m_gotBombMsg = false;
 
-		other.bomb.place(m_bombMsg.x, m_bombMsg.y, m_bombMsg.power);
+		Bomb& bomb = other.bombs[m_bombMsg.id];
+
+		bomb.place(m_bombMsg.x, m_bombMsg.y, m_bombMsg.power);
 	}
 
 	if (m_gotResultMsg)
@@ -609,6 +693,7 @@ void Game::render()
 				}
 
 				case Tile::blockWithPowerup:
+				case Tile::blockWithExtraBomb:
 				case Tile::block:
 				{
 					tile_image = tile_block_bmp;
@@ -624,6 +709,11 @@ void Game::render()
 					tile_image = HAL_GetTick() % 100 > 50 ? tile_star_1_bmp : tile_star_2_bmp;
 					break;
 				}
+				case Tile::extraBomb:
+				{
+					tile_image = HAL_GetTick() % 100 > 50 ? tile_bomb_bonus_1_bmp : tile_bomb_bonus_2_bmp;
+					break;
+				}
 
 				case Tile::empty:
 				default:
@@ -632,8 +722,16 @@ void Game::render()
 				}
 			}
 
+			int8_t offsetX = 0, offsetY = 0;
+
+			if (m_activeShake > 0 && j > 0 && j < MAP_HEIGHT - 1 && i > 0 && i < MAP_WIDTH - 1)
+			{
+				offsetX = rand() % 3 - 1;
+				offsetY = rand() % 3 - 1;
+			}
+
 			device::Display::drawImage(
-				MAP_OFFSET_X + i * 8, jk, 8, 8, tile_image);
+				MAP_OFFSET_X + i * 8 + offsetX, jk + offsetY, 8, 8, tile_image);
 		}
 	}
 
@@ -707,7 +805,10 @@ void Game::build()
 		uint8_t v = pool[i];
 		uint8_t x = v & 0xF;
 		uint8_t y = v >> 4;
-		setTile(x, y, (i > cnt - 6) ? Tile::blockWithPowerup : Tile::block);
+
+
+
+		setTile(x, y, (i > cnt - 3) ? Tile::blockWithPowerup : ((i > cnt - 6) ? Tile::blockWithExtraBomb : Tile::block));
 	}
 
 	// free up space for players
@@ -741,6 +842,7 @@ void Game::init()
 	m_gotBombMsg = false;
 	m_gotResultMsg = false;
 	m_activePowerUps = 0;
+	m_activeShake = 0;
 
 	memset(m_tiles, 0x00, MAP_WIDTH * MAP_HEIGHT);
 

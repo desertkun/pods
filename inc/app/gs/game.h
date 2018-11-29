@@ -17,6 +17,8 @@
 #define MAP_OFFSET_X 0
 #define MAP_OFFSET_Y 8
 
+#define MAX_BOMBS 5
+
 namespace gs
 {
 
@@ -26,7 +28,9 @@ enum class Tile
 	wall,
 	block,
 	blockWithPowerup,
+	blockWithExtraBomb,
 	powerup,
+	extraBomb,
 	explosion
 };
 
@@ -64,11 +68,11 @@ struct Bomb
 
 struct Player
 {
-	Bomb bomb;
+	Bomb bombs[MAX_BOMBS];
 	PlayerState state;
 	uint8_t x, y, targetX, targetY, movingTimer, movedBy;
 	int8_t offsetX, offsetY;
-	uint8_t bombPower;
+	uint8_t bombPower, bombCount;
 	const unsigned char* sprite;
 
 	void init(uint8_t x, uint8_t y, const unsigned char* sprite);
@@ -101,8 +105,12 @@ public:
 	void started();
 
 	bool checkTile(uint8_t x, uint8_t y);
+
 	void addPowerUp() { m_activePowerUps++; }
 	void removePowerUp() { m_activePowerUps--; }
+	void addShake() { m_activeShake++; }
+	void removeShake() { m_activeShake--; }
+
 
 	void setTile(uint8_t x, uint8_t y, Tile tile);
 	Tile getTile(uint8_t x, uint8_t y) const;
@@ -129,7 +137,7 @@ private:
 	Player m_players[2];
 	uint8_t m_myPlayerId;
 	uint32_t m_seed;
-	uint8_t m_activePowerUps;
+	uint8_t m_activePowerUps, m_activeShake;
 
 	uint32_t m_refreshTimer;
 	bool m_dirty;
